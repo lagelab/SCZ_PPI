@@ -17,7 +17,6 @@ library(genoppi)
 
 df <- NULL
 sheetList <- excel_sheets("../data/SCZ_GenoppiResults.xlsx")
-summaryDf <- NULL
 
 for (i in 2:length(sheetList)) {
 	tempDf <- read_excel("../data/SCZ_GenoppiResults.xlsx",sheet=sheetList[i])
@@ -50,7 +49,7 @@ pdf("../output/SCZ_CACNA1C_ScatterVolcano.pdf",height=2.5,width=2.5)
 # VOLCANO
 set.seed(42)
 
-ggplot(subDf,aes(x=logFC,y=-log10(pvalue),color=significant)) +
+ggplot(subDf,aes(x=logFC,y=-log10(pvalue))) +
 xlab(bquote(log[2]*"(Fold change)")) + ylab(bquote(-log[10]*"(P-value)")) +
 geom_vline(xintercept=0,linetype='dashed') +
 
@@ -86,7 +85,7 @@ theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=
 # SCATTER
 set.seed(42)
 
-ggplot(subDf,aes(x=rep1,y=rep2,color=significant)) +
+ggplot(subDf,aes(x=rep1,y=rep2)) +
 xlab('Replicate 1') + ylab('Replicate 2') +
 
 # plot all proteins (green = significant, blue = not significant)
@@ -139,7 +138,7 @@ for (i in 1:length(ipList)) {
 	# print 2 versions with different seeds to get good ggrepel labeling
 	set.seed(42)
  
-	p <- ggplot(subDf,aes(x=logFC,y=-log10(pvalue),color=significant)) +
+	p <- ggplot(subDf,aes(x=logFC,y=-log10(pvalue))) +
 		xlab(bquote(log[2]*"(Fold change)")) + ylab(bquote(-log[10]*"(P-value)")) +
 		geom_vline(xintercept=0,linetype='dashed') +
 		
@@ -173,7 +172,7 @@ for (i in 1:length(ipList)) {
 	
 	set.seed(123)
  
-	p <- ggplot(subDf,aes(x=logFC,y=-log10(pvalue),color=significant)) +
+	p <- ggplot(subDf,aes(x=logFC,y=-log10(pvalue))) +
 		xlab(bquote(log[2]*"(Fold change)")) + ylab(bquote(-log[10]*"(P-value)")) +
 		geom_vline(xintercept=0,linetype='dashed') +
 		
