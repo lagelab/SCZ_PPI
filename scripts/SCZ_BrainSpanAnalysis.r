@@ -1,7 +1,7 @@
 ##########################################################################################
 ## BrainSpan expression profiles for various SCZ gene sets
 ##
-## Author: Yu-Han Hsu
+## Author: Kalliopi Tsafou, Yu-Han Hsu
 ##########################################################################################
 
 rm(list=ls())
