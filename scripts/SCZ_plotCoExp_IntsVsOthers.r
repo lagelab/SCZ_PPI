@@ -1,6 +1,6 @@
 ##########################################################################################
 ## Compare and plot co-expression z-scores between bait-interactor pairs vs. other
-## gene pairs, using co-expression ata derived from 4 transcriptomic datasets:
+## gene pairs, using co-expression data derived from 4 transcriptomic datasets:
 ## Stickels2021, Maynard2021, Velmeshev2019, BrainSpan
 ##
 ## Author: Yu-Han Hsu
@@ -182,7 +182,7 @@ ggviolin(subset(plotDf,Dataset=='COMBINED' & DataSource=='Maynard 2021'),
 geom_boxplot(aes(color=Type),width=0.2,outlier.size=0.2) +
 	
 # pairwise Wilcoxon tests
-stat_compare_means(comparisons=testList,method='wilcox.test',#size=3,vjust=0.5) +
+stat_compare_means(comparisons=testList,method='wilcox.test',
 	symnum.args=list(cutpoints=pCutoffs,symbols=pSymbols),hide.ns=T,size=3,vjust=0.5) +
 
 # label size of each group

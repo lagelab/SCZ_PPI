@@ -1,6 +1,6 @@
 ##########################################################################################
 ## Compare and plot co-expression z-scores of bait-interactor pairs subsetted by
-## different variables, using co-expression ata derived from 4 transcriptomic datasets:
+## different variables, using co-expression data derived from 4 transcriptomic datasets:
 ## Stickels2021, Maynard2021, Velmeshev2019, BrainSpan
 ##
 ## Author: Yu-Han Hsu
@@ -16,6 +16,7 @@ library(ggpubr)
 
 intDf <- read.table('../data/SCZ_IntSubsetTable.txt',header=T,sep='\t',stringsAsFactors=F)
 
+# bin by time point
 intDf$TimePoint <- factor(intDf$TimePoint,levels=sort(unique(intDf$TimePoint)))
 
 # bin by bait log2 FC
