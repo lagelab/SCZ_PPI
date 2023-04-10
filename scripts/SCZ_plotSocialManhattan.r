@@ -13,46 +13,25 @@ library(ggnewscale)
 
 
 # ----------------------------------------------------------------------------------------
-# PGC3 FINEMAP/SMR genes (medRxiv manuscript Supp Table 20)
-pgcDf <- read.table('../data/PGC3_SCZ_PrioritizedGenes.txt',
+# read in PGC3 and PPI network gene lists
+
+# PGC3 FINEMAP/SMR genes (Trubetskoy 2022, Supp Table 12)
+pgcDf <- read.table('../data/Trubetskoy2022_PGC3-SCZ_SuppTable12.txt',
 	header=T,sep='\t',stringsAsFactors=F)
-pgcDf$Symbol.ID[grepl('PCDHA',pgcDf$Symbol.ID)] <- 'PCDHA@'
-pgcGenes <- unique(pgcDf$Symbol.ID)
 
 
-# PGC3 SCZ GWAS genes in LD loci (medRxiv manuscript Supp Table 3)
-geneDf <- read.table('../data/PGC3_SCZ_combined_270loci_GenePosPvalue.txt',
+# PGC3 SCZ GWAS genes in LD loci (Trubetskoy 2022, Supp Table 3)
+geneDf <- read.table('../data/PGC3-SCZ_287loci_GenePosPvalue.txt',
 	header=T,sep='\t',stringsAsFactors=F)
+
 # remove MHC region genes (except SYNGAP1)
-geneDf <- subset(geneDf,SNP!='rs13195636' | Gene=='SYNGAP1')
+geneDf <- subset(geneDf,SNP!='rs140365013' | Gene=='SYNGAP1')
 
-# collapse PCDHA@ genes
-geneDf[grepl('PCDHA',geneDf$Gene),] <- geneDf[geneDf$Gene=='PCDHA1',]
-geneDf <- unique(geneDf)
-geneDf$Gene[geneDf$Gene=='PCDHA1'] <- 'PCDHA@'
-
-# set minimum p-value (only affects SYNGAP1)
+# set minimum p-value (for visualization)
 geneDf[geneDf$Pvalue < 1e-25,"Pvalue"] <- 1e-25 
-geneDf <- geneDf[order(geneDf$Chr,geneDf$Start),]
-dim(geneDf)
-
-# set chr 1-22 coordinates on x-axis
-nChr <- length(unique(geneDf$Chr))
-geneDf$Coord <- NA
-s <- 0
-nbp <- c(249250621,243199373,198022430,191154276,180915260,171115067,159138663,146364022,
-	141213431,135534747,135006516,133851895,115169878,107349540,102531392,90354753,
-	81195210,78077248,59128983,63025520,48129895,51304566) # GRCh37 chr 1-22 lengths
-chrTicks <- NULL
-for (i in 1:22) {
-	geneDf[geneDf$Chr==i,"Coord"] <- geneDf[geneDf$Chr==i,"Start"] + s
-	chrTicks <- c(chrTicks,floor(nbp[i]/2) + s)
-	s <- s + nbp[i]
-}
 
 
-# ----------------------------------------------------------------------------------------
-# read in SCZ interactors
+# SCZ index protein interactors
 intDf <- read.table('../data/SCZ_MasterInteractorTable_full.txt',
 	header=T,sep='\t',stringsAsFactors=F)
 
@@ -64,14 +43,88 @@ intDf$Bait <- sapply(strsplit(intDf$ListName,"_"),"[[",1)
 length(unique(intDf$GeneName)) # 1239 genes (1238 interactors + SYNGAP1)
 
 
-# save all PCDHA interactors as 'PCDHA@'
-intDf[grep('PCDHA',intDf$Gene),'GeneName'] <- 'PCDHA@' 
-intDf <- unique(intDf[,c('Bait','GeneName')])
-length(unique(intDf$GeneName)) # 1229 genes after merging PCDHA@ genes
+# interactors validated by IP-WB
+wbDf <- read.table('../data/SCZ_ValidationSummary.txt',
+	header=T,sep='\t',stringsAsFactors=F,row.names=1)
+wbDf <- subset(wbDf,Validated)
 
+
+# ----------------------------------------------------------------------------------------
+# annotate all protein-coding genes in PGC3 loci with prioritization info
+
+annDf <- subset(geneDf,!Gene %in% unique(intDf$Bait))
+annDf <- annDf[order(annDf$Chr,annDf$Start),]
+
+annDf$FINEMAP <- annDf$Gene %in% subset(pgcDf,FINEMAP.priority.gene==1)$Symbol.ID
+annDf$SMR <- annDf$Gene %in% subset(pgcDf,SMR.priority.gene==1)$Symbol.ID
+annDf$Network <- annDf$Gene %in% intDf$GeneName
+annDf$Overlap <- annDf$Network & (annDf$FINEMAP | annDf$SMR)
+
+write.table(annDf,"../output/SCZ_PGC3_PrioritzationTable.txt",quote=F,row.names=F,sep="\t")
+
+
+# check stats
+sum(annDf$Network) # 123 locus genes prioritzed by our network
+length(unique(subset(annDf,Network)$SNP)) # found in 74 loci
+
+# genes also prioritized by FINEMAP or SMR
+subset(annDf,Network & FINEMAP)
+subset(annDf,Network & SMR)
+
+# locus genes prioritized by FINEMAP/SMR (some have different Index.SNP in pgcDf)
+y <- subset(geneDf,Gene %in% pgcDf$Symbol.ID & !Gene %in% unique(intDf$Bait))
+
+# loci containing network-prioritized genes but no FINEMAP/SMR candidates
+length(unique(subset(annDf,Network & 
+	(!SNP %in% y$SNP) & (!SNP %in% pgcDf$Index.SNP))$SNP)) # 44
+
+# genes validated by IP-WB
+annDf$WB <- annDf$Gene %in% wbDf$Interactor
+subset(annDf,WB)
+subset(annDf,WB & (FINEMAP | SMR))
+
+
+# ----------------------------------------------------------------------------------------
+# collapse all PCDHA genes to 'PCDHA@' (for visualization)
+
+pgcDf$Symbol.ID[grepl('PCDHA',pgcDf$Symbol.ID)] <- 'PCDHA@'
+pgcGenes <- sort(unique(pgcDf$Symbol.ID))
+
+geneDf[grepl('PCDHA',geneDf$Gene),] <- geneDf[geneDf$Gene=='PCDHA1',]
+geneDf <- unique(geneDf)
+geneDf$Gene[geneDf$Gene=='PCDHA1'] <- 'PCDHA@'
+
+intDf[grep('PCDHA',intDf$Gene),'GeneName'] <- 'PCDHA@' 
 intDf <- unique(intDf[,c('Bait','GeneName')])
 names(intDf) <- c('Bait','Gene')
 dim(intDf)
+
+wbDf$Interactor[grepl('PCDHA',wbDf$Interactor)] <- 'PCDHA@'
+
+
+# ----------------------------------------------------------------------------------------
+# set chromosomal position of genes to be plotted
+
+geneDf <- geneDf[order(geneDf$Chr,geneDf$Start),]
+
+nChr <- length(unique(geneDf$Chr))
+geneDf$Coord <- NA
+s <- 0
+
+# GRCh37 chr 1-22 + X lengths from: https://www.ncbi.nlm.nih.gov/grc/human/data?asm=GRCh37
+nbp <- c(249250621,243199373,198022430,191154276,180915260,171115067,159138663,146364022,
+	141213431,135534747,135006516,133851895,115169878,107349540,102531392,90354753,
+	81195210,78077248,59128983,63025520,48129895,51304566,155270560)
+chrTicks <- NULL
+for (i in 1:23) {
+	if (i==23) { 
+		geneDf[geneDf$Chr=="X","Coord"] <- geneDf[geneDf$Chr=="X","Start"] + s
+	} else {
+		geneDf[geneDf$Chr==i,"Coord"] <- geneDf[geneDf$Chr==i,"Start"] + s
+	}
+	chrTicks <- c(chrTicks,floor(nbp[i]/2) + s)
+	s <- s + nbp[i]
+}
 
 
 # ----------------------------------------------------------------------------------------
@@ -108,7 +161,7 @@ ymax <- abs(floor(log10(min(plotDf$Pvalue)))) + 0.5
 
 # unique genes that show up in plotDf (which contains unique PAIRS of genes)
 uniqDf <- unique(plotDf[,c("Gene","Coord","Pvalue","Significance")])
-# 6 index genes + 104 locus genes
+# 6 index genes + 113 locus genes
 
 
 # ----------------------------------------------------------------------------------------
@@ -119,14 +172,9 @@ uniqDf <- unique(plotDf[,c("Gene","Coord","Pvalue","Significance")])
 
 
 # edge color based on IP-WB validation data
-wbDf <- read.table('../data/SCZ_ValidationSummary.txt',
-	header=T,sep='\t',stringsAsFactors=F,row.names=1)
-wbDf <- subset(wbDf,Validated)
-wbDf$Interactor[wbDf$Interactor=='PCDHA2'] <- 'PCDHA@'
-
 plotDf$Validated <- FALSE
 for (i in 1:nrow(wbDf)) {
-	plotDf$Validated[which(plotDf$Gene==wbDf$Interactor[i] & 
+	plotDf$Validated[which(plotDf$Gene==wbDf$Interactor[i] &
 		plotDf$Bait==wbDf$Bait[i])] <- TRUE
 }
 plotDf <- plotDf[order(plotDf$Validated),]
@@ -138,8 +186,6 @@ maxNumBaits <- max(sizeDf$Freq)
 uniqDf$NodeSize <- sizeDf$Freq[match(uniqDf$Gene,sizeDf$Var1)]
 uniqDf$NodeSize[uniqDf$Gene %in% baitList] <- maxNumBaits
 
-
-set.seed(1234) # fix ggrepel label coordinates
 
 pdf("../output/SCZ_SocialManhattanPlot.pdf",width=7.5,height=3.5)
 
@@ -161,8 +207,8 @@ geom_text_repel(mapping=aes(label=Gene,color=as.factor(Significance),size=NodeSi
 scale_size(range=c(1.5,2.5)) +
 scale_color_manual(labels=c("Index genes","Locus genes","FINEMAP/SMR genes"),
 	values=c("red","darkorchid4","magenta")) +
-
-scale_x_continuous(limits=c(0,max(geneDf$Coord)),label=as.character(1:22),
+	
+scale_x_continuous(limits=c(0,max(geneDf$Coord)),label=c(as.character(1:22),'X'),
 	breaks=chrTicks) +
 scale_y_continuous(expand=c(0,0),limits=c(5.5,25.5),breaks=seq(5.5,25.5,2.5)) +
 

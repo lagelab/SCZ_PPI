@@ -32,33 +32,30 @@ setDf <- read.table('../data/SCZ_BaitSelectionGeneList.txt',
 	header=T,sep='\t',stringsAsFactors=F)
 
 
-# PGC3 SCZ GWAS genes in LD loci (medRxiv manuscript Supp Table 3)
-# 270 regions from combined meta-analysis (r2 > 0.1 SNPs +- 50kb)
-pgcDf <- read.table('../data/PGC3_SCZ_combined_270loci_GenePosPvalue.txt',
+# PGC3 SCZ GWAS genes in LD loci (Supp Table 3 of Trubetskoy 2022)
+pgcDf <- read.table('../data/PGC3-SCZ_287loci_GenePosPvalue.txt',
 	header=T,sep='\t',stringsAsFactors=F)
 # remove MHC region genes (except SYNGAP1)
-pgcDf <- subset(pgcDf,SNP!='rs13195636' | Gene=='SYNGAP1')
+pgcDf <- subset(pgcDf,SNP!='rs140365013' | Gene=='SYNGAP1')
 # remove all baits
 pgcDf <- subset(pgcDf, !Gene %in% c('CACNA1C','CUL3','HCN1','RIMS1','SYNGAP1','TCF4'))
 
 
-# PGC3 FINEMAP/SMR genes (medRxiv manuscript Supp Table 20)
+# PGC3 FINEMAP/SMR genes (Supp Table 12 of Trubetskoy 2022)
 # only keep protein-coding genes included in PGC3 loci above
-fineDf <- read.table('../data/PGC3_SCZ_PrioritizedGenes.txt',
+fineDf <- read.table('../data/Trubetskoy2022_PGC3-SCZ_SuppTable12.txt',
 	header=T,sep='\t',stringsAsFactors=F)
 fineGenes <- subset(fineDf,Symbol.ID %in% pgcDf$Gene)$Symbol.ID
 
 
 # FINEMAP genes and loci containing FINEMAP genes
-mapGenes <- subset(fineDf,Symbol.ID %in% pgcDf$Gene & 
-	(nonsynPP0.10==1 | UTRPP0.10==1 | k3.5singleGene==1))$Symbol.ID
+mapGenes <- subset(fineDf,Symbol.ID %in% pgcDf$Gene & FINEMAP.priority.gene==1)$Symbol.ID
 mapSnps <- unique(subset(pgcDf,Gene %in% mapGenes)$SNP)
 mapLociGenes <- subset(pgcDf,SNP %in% mapSnps)$Gene
 
 
 # SMR genes and loci containing SMR genes
-smrGenes <- subset(fineDf,Symbol.ID %in% pgcDf$Gene & 
-	(SMRmap==1 | SMRsingleGene==1 | HI.C.SMR==1))$Symbol.ID
+smrGenes <- subset(fineDf,Symbol.ID %in% pgcDf$Gene & SMR.priority.gene==1)$Symbol.ID
 smrSnps <- unique(subset(pgcDf,Gene %in% smrGenes)$SNP)
 smrLociGenes <- subset(pgcDf,SNP %in% smrSnps)$Gene
 
