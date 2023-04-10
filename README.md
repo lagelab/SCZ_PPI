@@ -1,3 +1,7 @@
+<!-- badges: start -->
+[![DOI](https://zenodo.org/badge/489065058.svg)](https://zenodo.org/badge/latestdoi/489065058)
+<!-- badges: end -->
+
 # SCZ_PPI
 Documentation for analysis scripts used in the SCZ PPI paper:
 
